@@ -33,12 +33,19 @@ if page == "1. Causal Strategy & Data":
     To tackle this, we utilized weather conditions (wind and solar) as **Exogenous Shocks (Instrumental Variables)**.
     """)
     
-    # --- 새로 추가된 부분 1: Causal DAG ---
+# --- 새로 추가된 부분 1: Causal DAG ---
     st.markdown("#### 🔄 Directed Acyclic Graph (DAG) for our IV Strategy")
-    st.info("""
-    **[ Weather (Instrumental Variable) ]** ➔ **[ Renewable Generation ]** ➔ **[ Electricity Price (Y) ]** &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; ⇧  
-    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; **[ Electricity Demand (Control) ]**
-    """)
+    
+    # 깨지지 않는 진짜 다이어그램 (Graphviz)
+    st.graphviz_chart('''
+        digraph {
+            rankdir=LR;
+            node [shape=box, style=filled, fillcolor=white, fontname="Helvetica"];
+            
+            "Weather (IV)" -> "Renewable Generation" -> "Electricity Price (Y)"
+            "Electricity Demand (Control)" -> "Electricity Price (Y)"
+        }
+    ''')
     st.markdown("---")
     
     st.markdown("### 🗺️ Capacity-Weighted Weather Indices")
