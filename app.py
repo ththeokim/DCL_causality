@@ -71,8 +71,7 @@ elif page == "2. OLS Results & Simulator":
 
     st.markdown("### 🎛️ 2. Interactive Price Simulator")
     # (이 아래부터는 기존의 INTERCEPT = 45.8463 ... 코드가 그대로 이어지면 됩니다!)
-    # -----------------------------------
-
+    
     st.markdown("### 🎛️ 2. Interactive Price Simulator")
     st.write("Adjust the weather and demand conditions below to see the real-time causal impact on electricity prices based on the OLS coefficients above.")
     
