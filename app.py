@@ -8,7 +8,7 @@ st.set_page_config(page_title="DCL Merit-Order Effect", layout="wide")
 # 2. Sidebar Navigation
 st.sidebar.title("DCL Final Project")
 st.sidebar.markdown("**Team:** Taeheon & Bosse")
-page = st.sidebar.radio("Navigation", ["1. Causal Strategy & Data", "2. Price Simulator"])
+page = st.sidebar.radio("Navigation", ["1. Causal Strategy & Data", "2. OLS Results & Simulator"])
 
 # 3. Page 1: Data & Causal Strategy
 if page == "1. Causal Strategy & Data":
@@ -16,13 +16,12 @@ if page == "1. Causal Strategy & Data":
     st.markdown("""
     ### 🎯 Research Goal & Causal Strategy
     Simply analyzing the correlation between electricity demand and prices suffers from severe **Endogeneity** issues. 
-    To tackle this, we utilized weather conditions (wind and solar) as **Exogenous Shocks (Instrumental Variables)**, which are completely independent of human electricity market behaviors. This allows us to estimate the pure causal effect of renewables on wholesale electricity prices.
+    To tackle this, we utilized weather conditions (wind and solar) as **Exogenous Shocks (Instrumental Variables)**.
     """)
     
     st.markdown("### 🗺️ Capacity-Weighted Weather Indices")
-    st.write("Instead of using simple national average weather data, we constructed sophisticated capacity-weighted weather indices based on the actual distribution of wind and solar power plants in Germany. This approach maximized our model's explanatory power (R-squared: 0.68).")
+    st.write("Instead of using simple national average weather data, we constructed sophisticated capacity-weighted weather indices based on the actual distribution of wind and solar power plants in Germany.")
     
-    # Display Bosse's map images
     col1, col2 = st.columns(2)
     try:
         with col1:
@@ -32,10 +31,41 @@ if page == "1. Causal Strategy & Data":
     except FileNotFoundError:
         st.warning("Please upload the map images (mastr_wind_capacity_map.png, etc.) to the current directory.")
 
-# 4. Page 2: Simulator based on OLS Results
-elif page == "2. Price Simulator":
+# 4. Page 2: OLS Results & Simulator
+elif page == "2. OLS Results & Simulator":
     st.title("⚡ Wholesale Electricity Price Simulator")
-    st.write("Adjust the weather and demand conditions below to see the real-time causal impact on electricity prices based on our OLS regression results.")
+    
+    # --- 새롭게 추가된 OLS 결과표 영역 ---
+    st.markdown("### 📈 1. OLS Regression Results")
+    st.write("The causal effect of renewable energy on electricity prices, controlling for demand. All variables are statistically significant (P>|t| = 0.000) with an R-squared of 0.682.")
+    
+    # 텍스트 형태의 결과표를 그대로 웹앱에 렌더링
+    ols_results = """
+    OLS Regression Results                            
+    ==============================================================================
+    Dep. Variable:      price_eur_per_mwh   R-squared:                       0.682
+    Model:                            OLS   Adj. R-squared:                  0.682
+    Method:                 Least Squares   F-statistic:                     6265.
+    Date:                Sun, 28 Jun 2026   Prob (F-statistic):               0.00
+    Time:                        13:12:07   Log-Likelihood:                -42033.
+    No. Observations:                8759   AIC:                         8.407e+04
+    Df Residuals:                    8755   BIC:                         8.410e+04
+    Df Model:                           3                                         
+    ====================================================================================================
+                                           coef    std err          t      P>|t|      [0.025      0.975]
+    ----------------------------------------------------------------------------------------------------
+    Intercept                           45.8463      1.997     22.953      0.000      41.931      49.762
+    consumption_mwh                      0.0110      0.000     78.942      0.000       0.011       0.011
+    wind_speed_100m_weighted_ms        -11.9818      0.144    -83.411      0.000     -12.263     -11.700
+    shortwave_radiation_weighted_wm2    -0.1710      0.002   -109.206      0.000      -0.174      -0.168
+    ====================================================================================================
+    """
+    st.code(ols_results, language='text')
+    st.markdown("---")
+    # -----------------------------------
+
+    st.markdown("### 🎛️ 2. Interactive Price Simulator")
+    st.write("Adjust the weather and demand conditions below to see the real-time causal impact on electricity prices based on the OLS coefficients above.")
     
     # OLS Coefficients
     INTERCEPT = 45.8463
@@ -50,7 +80,6 @@ elif page == "2. Price Simulator":
     
     predicted_price = INTERCEPT + (cons * COEF_CONS) + (wind * COEF_WIND) + (solar * COEF_SOLAR)
     
-    st.subheader("📊 Simulation Result")
     if predicted_price < 0:
         st.error(f"🚨 Negative Price Alert: {predicted_price:.2f} EUR/MWh")
         st.write("Renewable energy generation is so high that consumers are actually being paid to use electricity!")
