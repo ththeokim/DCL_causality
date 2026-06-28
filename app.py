@@ -1,9 +1,22 @@
 import streamlit as st
 import pandas as pd
 import plotly.graph_objects as go
+from plotly.subplots import make_subplots
 
 # 1. Webapp Configuration
 st.set_page_config(page_title="DCL Merit-Order Effect", layout="wide")
+
+# 데이터 불러오기 (캐싱하여 속도 향상)
+@st.cache_data
+def load_data():
+    try:
+        df = pd.read_csv("merged_data_for_modeling.csv")
+        df['time'] = pd.to_datetime(df['time'])
+        return df
+    except FileNotFoundError:
+        return None
+
+df = load_data()
 
 # 2. Sidebar Navigation
 st.sidebar.title("DCL Final Project")
@@ -13,11 +26,20 @@ page = st.sidebar.radio("Navigation", ["1. Causal Strategy & Data", "2. OLS Resu
 # 3. Page 1: Data & Causal Strategy
 if page == "1. Causal Strategy & Data":
     st.title("The Merit-Order Effect of Renewable Energy")
+    
     st.markdown("""
     ### 🎯 Research Goal & Causal Strategy
     Simply analyzing the correlation between electricity demand and prices suffers from severe **Endogeneity** issues. 
     To tackle this, we utilized weather conditions (wind and solar) as **Exogenous Shocks (Instrumental Variables)**.
     """)
+    
+    # --- 새로 추가된 부분 1: Causal DAG ---
+    st.markdown("#### 🔄 Directed Acyclic Graph (DAG) for our IV Strategy")
+    st.info("""
+    **[ Weather (Instrumental Variable) ]** ➔ **[ Renewable Generation ]** ➔ **[ Electricity Price (Y) ]** &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; ⇧  
+    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; **[ Electricity Demand (Control) ]**
+    """)
+    st.markdown("---")
     
     st.markdown("### 🗺️ Capacity-Weighted Weather Indices")
     st.write("Instead of using simple national average weather data, we constructed sophisticated capacity-weighted weather indices based on the actual distribution of wind and solar power plants in Germany.")
@@ -29,17 +51,49 @@ if page == "1. Causal Strategy & Data":
         with col2:
             st.image("mastr_solar_capacity_map.png", caption="Solar Power Capacity Distribution in Germany")
     except FileNotFoundError:
-        st.warning("Please upload the map images (mastr_wind_capacity_map.png, etc.) to the current directory.")
+        st.warning("Please upload the map images to the current directory.")
+
+    st.markdown("---")
+    
+    # --- 새로 추가된 부분 2: 실제 데이터 트렌드 (이중 축 그래프) ---
+    st.markdown("### 📊 Historical Data Trend (Dual-Axis)")
+    st.write("Let's look at the actual data from January 2025. Notice how spikes in wind speed often correspond to drops in electricity prices.")
+    
+    if df is not None:
+        # 처음 일주일(168시간) 데이터만 추출하여 그래프가 너무 복잡해지지 않게 함
+        sample_df = df.head(168) 
+        
+        # Plotly 이중 축 그래프 생성
+        fig_trend = make_subplots(specs=[[{"secondary_y": True}]])
+        
+        # 1. 전력 가격 (왼쪽 축, 꺾은선 그래프)
+        fig_trend.add_trace(
+            go.Scatter(x=sample_df['time'], y=sample_df['price_eur_per_mwh'], name="Price (EUR)", line=dict(color="red", width=2)),
+            secondary_y=False,
+        )
+        
+        # 2. 풍속 (오른쪽 축, 영역 그래프)
+        fig_trend.add_trace(
+            go.Scatter(x=sample_df['time'], y=sample_df['wind_speed_100m_weighted_ms'], name="Wind Speed (m/s)", fill='tozeroy', line=dict(color="blue", width=1), opacity=0.3),
+            secondary_y=True,
+        )
+        
+        # 그래프 레이아웃 설정
+        fig_trend.update_layout(title_text="Electricity Price vs. Weighted Wind Speed (First Week of Jan 2025)", hovermode="x unified")
+        fig_trend.update_yaxes(title_text="Price (EUR/MWh)", secondary_y=False)
+        fig_trend.update_yaxes(title_text="Wind Speed (m/s)", secondary_y=True)
+        
+        st.plotly_chart(fig_trend, use_container_width=True)
+    else:
+        st.warning("Please upload 'merged_data_for_modeling.csv' to see the historical trend chart.")
 
 # 4. Page 2: OLS Results & Simulator
 elif page == "2. OLS Results & Simulator":
     st.title("⚡ Wholesale Electricity Price Simulator")
     
-    # --- 새롭게 디자인된 OLS 결과표 영역 시작 ---
     st.markdown("### 📈 1. OLS Regression Results")
     st.write("The causal effect of renewable energy on electricity prices, controlling for demand.")
     
-    # 주요 지표를 대시보드 위젯(Metric)으로 깔끔하게 배치
     col1, col2, col3 = st.columns(3)
     col1.metric(label="R-squared", value="0.682", delta="High Explanatory Power", delta_color="normal")
     col2.metric(label="F-statistic", value="6265.0", delta="p < 0.001", delta_color="normal")
@@ -47,7 +101,6 @@ elif page == "2. OLS Results & Simulator":
     
     st.markdown("<br>", unsafe_allow_html=True)
     
-    # 회귀분석 결과표를 Pandas 데이터프레임으로 만들어 깔끔한 표(Table)로 렌더링
     st.markdown("#### 📊 Estimated Coefficients")
     coef_df = pd.DataFrame({
         "Variable": [
@@ -61,21 +114,15 @@ elif page == "2. OLS Results & Simulator":
         "t-value": ["22.95", "78.94", "-83.41", "-109.20"],
         "P-value": ["0.000 ***", "0.000 ***", "0.000 ***", "0.000 ***"]
     })
-    
     st.table(coef_df.set_index("Variable"))
     
-    # 심사위원(교수님)을 위한 해석 요약 박스 추가
     st.info("💡 **Key Finding:** The negative coefficients for Wind (**-11.98**) and Solar (**-0.17**) statistically prove the **Merit-Order Effect**. (*** p < 0.001)")
     st.markdown("---")
-    # --- 새롭게 디자인된 OLS 결과표 영역 끝 ---
 
-    st.markdown("### 🎛️ 2. Interactive Price Simulator")
-    # (이 아래부터는 기존의 INTERCEPT = 45.8463 ... 코드가 그대로 이어지면 됩니다!)
-    
+    # --- 중복 수정된 시뮬레이터 영역 ---
     st.markdown("### 🎛️ 2. Interactive Price Simulator")
     st.write("Adjust the weather and demand conditions below to see the real-time causal impact on electricity prices based on the OLS coefficients above.")
     
-    # OLS Coefficients
     INTERCEPT = 45.8463
     COEF_CONS = 0.0110
     COEF_WIND = -11.9818
