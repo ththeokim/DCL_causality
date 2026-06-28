@@ -55,33 +55,47 @@ if page == "1. Causal Strategy & Data":
 
     st.markdown("---")
     
-    # --- 새로 추가된 부분 2: 실제 데이터 트렌드 (이중 축 그래프) ---
+# --- 새로 추가된 부분 2: 실제 데이터 트렌드 (이중 축 그래프) ---
     st.markdown("### 📊 Historical Data Trend (Dual-Axis)")
-    st.write("Let's look at the actual data from January 2025. Notice how spikes in wind speed often correspond to drops in electricity prices.")
+    st.write("Explore the actual data from 2025. Use the dropdown to select a specific month, or use the slider below the chart to zoom in and observe how spikes in wind speed correspond to drops in electricity prices.")
     
     if df is not None:
-        # 처음 일주일(168시간) 데이터만 추출하여 그래프가 너무 복잡해지지 않게 함
-        sample_df = df.head(168) 
+        # 1. 월별 선택 드롭다운(Selectbox) 위젯 추가
+        month_list = ["All Year"] + [f"2025-{str(i).zfill(2)}" for i in range(1, 13)]
+        selected_month = st.selectbox("📅 Select Month to View:", month_list)
         
-        # Plotly 이중 축 그래프 생성
+        # 2. 선택한 월에 맞게 데이터 필터링
+        if selected_month == "All Year":
+            plot_df = df
+        else:
+            plot_df = df[df['time'].dt.strftime('%Y-%m') == selected_month]
+            
+        # 3. Plotly 이중 축 그래프 생성
         fig_trend = make_subplots(specs=[[{"secondary_y": True}]])
         
-        # 1. 전력 가격 (왼쪽 축, 꺾은선 그래프)
+        # 전력 가격 (왼쪽 축, 꺾은선 그래프)
         fig_trend.add_trace(
-            go.Scatter(x=sample_df['time'], y=sample_df['price_eur_per_mwh'], name="Price (EUR)", line=dict(color="red", width=2)),
+            go.Scatter(x=plot_df['time'], y=plot_df['price_eur_per_mwh'], name="Price (EUR)", line=dict(color="red", width=1)),
             secondary_y=False,
         )
         
-        # 2. 풍속 (오른쪽 축, 영역 그래프)
+        # 풍속 (오른쪽 축, 영역 그래프)
         fig_trend.add_trace(
-            go.Scatter(x=sample_df['time'], y=sample_df['wind_speed_100m_weighted_ms'], name="Wind Speed (m/s)", fill='tozeroy', line=dict(color="blue", width=1), opacity=0.3),
+            go.Scatter(x=plot_df['time'], y=plot_df['wind_speed_100m_weighted_ms'], name="Wind Speed (m/s)", fill='tozeroy', line=dict(color="blue", width=1), opacity=0.3),
             secondary_y=True,
         )
         
-        # 그래프 레이아웃 설정
-        fig_trend.update_layout(title_text="Electricity Price vs. Weighted Wind Speed (First Week of Jan 2025)", hovermode="x unified")
+        # 4. 그래프 레이아웃 및 줌(Zoom) 슬라이더 설정
+        fig_trend.update_layout(
+            title_text="Electricity Price vs. Weighted Wind Speed", 
+            hovermode="x unified",
+            legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1) # 범례 위치 최적화
+        )
         fig_trend.update_yaxes(title_text="Price (EUR/MWh)", secondary_y=False)
         fig_trend.update_yaxes(title_text="Wind Speed (m/s)", secondary_y=True)
+        
+        # X축 아래에 전체 기간을 훑어볼 수 있는 미니 슬라이더 추가
+        fig_trend.update_xaxes(rangeslider_visible=True)
         
         st.plotly_chart(fig_trend, use_container_width=True)
     else:
