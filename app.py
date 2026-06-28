@@ -32,8 +32,7 @@ if page == "1. Causal Strategy & Data":
         st.warning("Please upload the map images (mastr_wind_capacity_map.png, etc.) to the current directory.")
 
 # 4. Page 2: OLS Results & Simulator
-# 4. Page 2: OLS Results & Simulator
-elif page == "2. OLS Results & Simulator":
+    elif page == "2. OLS Results & Simulator":
     st.title("⚡ Wholesale Electricity Price Simulator")
     
     # --- 새롭게 디자인된 OLS 결과표 영역 시작 ---
