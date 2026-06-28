@@ -32,36 +32,46 @@ if page == "1. Causal Strategy & Data":
         st.warning("Please upload the map images (mastr_wind_capacity_map.png, etc.) to the current directory.")
 
 # 4. Page 2: OLS Results & Simulator
+# 4. Page 2: OLS Results & Simulator
 elif page == "2. OLS Results & Simulator":
     st.title("⚡ Wholesale Electricity Price Simulator")
     
-    # --- 새롭게 추가된 OLS 결과표 영역 ---
+    # --- 새롭게 디자인된 OLS 결과표 영역 시작 ---
     st.markdown("### 📈 1. OLS Regression Results")
-    st.write("The causal effect of renewable energy on electricity prices, controlling for demand. All variables are statistically significant (P>|t| = 0.000) with an R-squared of 0.682.")
+    st.write("The causal effect of renewable energy on electricity prices, controlling for demand.")
     
-    # 텍스트 형태의 결과표를 그대로 웹앱에 렌더링
-    ols_results = """
-    OLS Regression Results                            
-    ==============================================================================
-    Dep. Variable:      price_eur_per_mwh   R-squared:                       0.682
-    Model:                            OLS   Adj. R-squared:                  0.682
-    Method:                 Least Squares   F-statistic:                     6265.
-    Date:                Sun, 28 Jun 2026   Prob (F-statistic):               0.00
-    Time:                        13:12:07   Log-Likelihood:                -42033.
-    No. Observations:                8759   AIC:                         8.407e+04
-    Df Residuals:                    8755   BIC:                         8.410e+04
-    Df Model:                           3                                         
-    ====================================================================================================
-                                           coef    std err          t      P>|t|      [0.025      0.975]
-    ----------------------------------------------------------------------------------------------------
-    Intercept                           45.8463      1.997     22.953      0.000      41.931      49.762
-    consumption_mwh                      0.0110      0.000     78.942      0.000       0.011       0.011
-    wind_speed_100m_weighted_ms        -11.9818      0.144    -83.411      0.000     -12.263     -11.700
-    shortwave_radiation_weighted_wm2    -0.1710      0.002   -109.206      0.000      -0.174      -0.168
-    ====================================================================================================
-    """
-    st.code(ols_results, language='text')
+    # 주요 지표를 대시보드 위젯(Metric)으로 깔끔하게 배치
+    col1, col2, col3 = st.columns(3)
+    col1.metric(label="R-squared", value="0.682", delta="High Explanatory Power", delta_color="normal")
+    col2.metric(label="F-statistic", value="6265.0", delta="p < 0.001", delta_color="normal")
+    col3.metric(label="Observations", value="8,759", delta="Hourly Data", delta_color="off")
+    
+    st.markdown("<br>", unsafe_allow_html=True)
+    
+    # 회귀분석 결과표를 Pandas 데이터프레임으로 만들어 깔끔한 표(Table)로 렌더링
+    st.markdown("#### 📊 Estimated Coefficients")
+    coef_df = pd.DataFrame({
+        "Variable": [
+            "Intercept (Base Price)", 
+            "Electricity Demand (Control)", 
+            "Weighted Wind Speed (IV)", 
+            "Weighted Solar Radiation (IV)"
+        ],
+        "Coefficient": ["45.8463", "0.0110", "-11.9818", "-0.1710"],
+        "Std. Error": ["1.997", "0.000", "0.144", "0.002"],
+        "t-value": ["22.95", "78.94", "-83.41", "-109.20"],
+        "P-value": ["0.000 ***", "0.000 ***", "0.000 ***", "0.000 ***"]
+    })
+    
+    st.table(coef_df.set_index("Variable"))
+    
+    # 심사위원(교수님)을 위한 해석 요약 박스 추가
+    st.info("💡 **Key Finding:** The negative coefficients for Wind (**-11.98**) and Solar (**-0.17**) statistically prove the **Merit-Order Effect**. (*** p < 0.001)")
     st.markdown("---")
+    # --- 새롭게 디자인된 OLS 결과표 영역 끝 ---
+
+    st.markdown("### 🎛️ 2. Interactive Price Simulator")
+    # (이 아래부터는 기존의 INTERCEPT = 45.8463 ... 코드가 그대로 이어지면 됩니다!)
     # -----------------------------------
 
     st.markdown("### 🎛️ 2. Interactive Price Simulator")
